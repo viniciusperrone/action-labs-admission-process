@@ -32,7 +32,19 @@ public class CarbonCalculatorService {
     }
     
     public UpdateCalcInfoResponseDTO updateInfo(UpdateCalcInfoRequestDTO request)  {
+        Calculation calculation = calculationRepository.findById(request.getId())
+                .orElseThrow(() -> new IllegalArgumentException("Calculation not found: " + request.getId()));
+
+        calculation.setEnergyConsumption(request.getEnergyConsumption());
+        calculation.setTransportation(request.getTransportation());
+        calculation.setSolidWasteTotal(request.getSolidWasteTotal());
+        calculation.setRecyclePercentage(request.getRecyclePercentage());
+
+        calculationRepository.save(calculation);
+
         UpdateCalcInfoResponseDTO response = new UpdateCalcInfoResponseDTO();
+
+        response.setSuccess(true);
 
         return response;
     }
