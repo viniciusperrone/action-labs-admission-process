@@ -29,7 +29,7 @@ public class CarbonCalculatorService {
 
         calculation.setName(request.getName());
         calculation.setEmail(request.getEmail());
-        calculation.setPhoneNumber(request.getEmail());
+        calculation.setPhoneNumber(request.getPhoneNumber());
         calculation.setUf(request.getUf());
 
         Calculation saved = calculationRepository.save(calculation);
@@ -110,7 +110,7 @@ public class CarbonCalculatorService {
         double recyclePercentage = calculation.getRecyclePercentage();
 
         double recyclableWaste = totalWaste * recyclePercentage;
-        double nonRecyclableWaste = totalWaste * (1 - recyclableWaste);
+        double nonRecyclableWaste = totalWaste * (1 - recyclePercentage);
 
         return (recyclableWaste * factor.getRecyclableFactor())
                 + (nonRecyclableWaste * factor.getNonRecyclableFactor());
