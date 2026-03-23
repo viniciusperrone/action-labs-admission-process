@@ -1,110 +1,168 @@
-# AL Carbon Calculator
+# 📊 Carbon Calculator API
 
-## Description
+API REST para cálculo de emissão de carbono baseado em consumo de energia, transporte e produção de resíduos.
 
-Create the backend for a carbon calculator, using Java, Spring Boot and MongoDB.
+## Tecnologias usadas
 
-There are only 3 endpoints that need to be implemented:
+- Java 17
+- Spring Boot 3.3.4
+- Spring Data MongoDB
+- Spring Security
+- Docker / Docker Compose
+- Swagger (OpenAPI)
+- Lombok
 
-### [POST] /open/start-calc
+## Como executar o projeto
 
-Starts the calculation process. Receives the user basic info and stores a new calculation in the database. Returns the
-calculation's id
-to be used in the following endpoints. For this endpoint, every parameter is mandatory (name, email, phoneNumber and
-UF).
+### 1. Clonar o repositório
 
-### [PUT] /open/info
+```bash
+git clone https://github.com/viniciusperrone/action-labs-admission-process.git
+```
 
-Receives information needed to calculate the user's carbon emission (energy consumption, transportation and solid waste
-production) and stores it in the database.
+### 2. Subir o banco de dados
 
-Please consider `recyclePercentage` as a double from 0 to 1.0, representing the percentage of recyclable solid waste.
+```bash
+docker compose up
+```
 
-If this endpoint is called a second time for the same id, all its parameters must be overwritten.
+O MongoDB será iniciado na porta `27017` e populado automaticamente com os fatores de emissão via `init-mongo.js`.
 
-### [GET] /open/result/{id}
+Para resetar o banco ao estado inicial:
 
-Returns the carbon footprint for the calculation with the given id.
+```bash
+docker compose down -v
+docker compose up
+```
 
-All these endpoints are already defined in the class `OpenRestController`. You should implement the methods in this
-class.
+### 3. Rodar a aplicação
 
-## Calculator logic
+Pela IDE, rode a classe `CarbonCalculatorApplication`, ou via terminal:
 
-There are emission factors already saved in the database for energy consumption (`EnergyEmissionFactor.class`),
-transportation (`TransportationEmissionFactor.class`) and solid waste (`SolidWasteEmissionFactor.class`). These factors
-must be used to calculate the full carbon emission for this user, according to the following formulas:
+```bash
+./gradlew bootRun
+```
 
-### Energy consumption
+A aplicação sobe na porta `8085`.
 
-The class `EnergyEmissionFactor` contains the emission factors for each brazilian state (UF). The emission follows the
-formula:
+### 4. Acessar a documentação
 
-```Carbon emission = energy consumption * emission factor```
+Swagger disponível em: [http://localhost:8085/swagger-ui.html](http://localhost:8085/swagger-ui.html)
 
-### Transportation
+---
 
-The class `TransportationEmissionFactor` contains the emission factors for each type of transportation. The emission
-follows the formula:
+## Fluxo da aplicação
 
-```Carbon emission = distance * transportation type emission factor```
+1. O usuário inicia um cálculo via `/open/start-calc`
+2. Um ID é gerado e armazenado no banco
+3. O usuário envia os dados de consumo via `/open/info`
+4. O sistema armazena ou atualiza os dados
+5. O usuário consulta o resultado via `/open/result/{id}`
+6. A emissão total é calculada dinamicamente
 
-### Solid waste
+---
 
-The class `SolidWasteEmissionFactor` contains the emission factors for recyclable and non-recyclable solid waste. The
-emission follows the formula:
+## Endpoints
 
-```Carbon emission = solid waste production * emission factor```
+### POST `/open/start-calc`
 
-## Technical Notes
+Inicia um novo cálculo com os dados básicos do usuário. Todos os campos são obrigatórios.
 
-### Database
+**Request:**
+```json
+{
+  "name": "João Silva",
+  "email": "joao@email.com",
+  "phoneNumber": "41999999999",
+  "uf": "PR"
+}
+```
 
-Run `docker compose up` to start the MongoDB database. The database will be populated with the default collection
-contents defined in the `init-mongo.js` script when first started - all default emission factors are here. These values
-are only for this test and should not be
-considered real values for carbon emissions :smile:
+**Response:**
+```json
+{
+  "id": "69c0f5dfbbabb42f94cb6416"
+}
+```
 
-If you need to reset the database to its initial state, you can run `docker compose down -v`, which will erase the
-database and repopulate the initial values in the next start.
+---
 
-### Running the application
+### PUT `/open/info`
 
-You can use your IDE of choice to run the application. The main class is `CarbonCalculatorApplication`. The server will
-run
-on port 8085 (http://localhost:8085).
+Recebe as informações de consumo para o cálculo. Se chamado novamente para o mesmo `id`, os dados são sobrescritos.
 
-There is a swagger documentation available on http://localhost:8085/swagger-ui.html.
+**Request:**
+```json
+{
+  "id": "69c0f5dfbbabb42f94cb6416",
+  "energyConsumption": 300,
+  "transportation": [
+    { "type": "CAR", "monthlyDistance": 200 },
+    { "type": "PUBLIC_TRANSPORT", "monthlyDistance": 50 }
+  ],
+  "solidWasteTotal": 100,
+  "recyclePercentage": 0.4
+}
+```
 
-### Classes already created
+> `recyclePercentage` é um valor entre `0` e `1.0` representando o percentual de resíduos recicláveis.
 
-We created the classes for the RestController and the DTOs needed to execute its endpoints. If you want to change them,
-please keep the same property names - don't break the defined interface.
+> Tipos de transporte disponíveis: `CAR`, `MOTORCYCLE`, `PUBLIC_TRANSPORT`, `BICYCLE`
 
-We also created 3 basic models and their corresponding Repository interfaces for the carbon emission values that you
-need to use in your implementations. These are the objects pre-populated in the
-database. Feel free to add more methods to the *Repository interfaces as needed.
+**Response:**
+```json
+{
+  "success": true
+}
+```
 
-You will certainly need to create new classes to implement the logic for the endpoints and new models. Feel free to
-organize the code as you see fit.
+---
 
-There are a few implemented classes to check the application's health, security and swagger configs and so on. There's
-probably no need to modify them, but if you think it's necessary, go ahead.
+### GET `/open/result/{id}`
 
-## Additional libs
+Retorna a pegada de carbono calculada para o id informado.
 
-You are free to add any dependencies you see fit to the project. We want you to implement this challenge the same way
-you deal in any other project: use your best judgment.
+**Response:**
+```json
+{
+  "energy": 120.0,
+  "transportation": 40.0,
+  "solidWaste": 70.0,
+  "total": 230.0
+}
+```
 
-## Test evaluation
+---
 
-Your test will be evaluated both on the correctness of the implementation and the quality of the code.
+## Fórmulas de cálculo
 
-There is no need to host your code anywhere. Publish your code in a public repository and share it with us, so we can
-download
-and run it.
+### Energia
+```
+emissão = consumoDeEnergia × fatorDeEmissão[UF]
+```
 
-Forks are disabled in this repository, so you should download the code and create a new repository with your
-implementation.
+### Transporte
+```
+emissão = Σ (distânciaMensal × fatorDeEmissão[tipoDeTransporte])
+```
 
-Good luck! :smile:
+### Resíduos Sólidos
+```
+emissão = (totalResíduos × percRecicláveis × fatorRecicláveis[UF])
+        + (totalResíduos × (1 - percRecicláveis) × fatorNãoRecicláveis[UF])
+```
+
+---
+
+## Estrutura do projeto
+
+```
+src/main/java/br/com/actionlabs/carboncalc/
+├── config/         # Configurações de segurança e Swagger
+├── dto/            # Objetos de request e response
+├── enums/          # TransportationType
+├── model/          # Entidades MongoDB
+├── repository/     # Interfaces Spring Data
+├── rest/           # Controllers REST
+└── service/        # Regras de negócio
+```
