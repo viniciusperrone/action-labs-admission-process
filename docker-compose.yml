@@ -1,11 +1,12 @@
 services:
 
   mongo:
+    container_name: action-labs-mongo
     image: mongo:latest
     ports:
       - "27017:27017"
     volumes:
-      - "my_volume_mongodb:/data/db"
+      - "mongodb_data:/data/db"
       - ./init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
     networks:
       - carbon-calc
@@ -15,4 +16,4 @@ networks:
     driver: bridge
 
 volumes:
-  my_volume_mongodb:
+  mongodb_data:
